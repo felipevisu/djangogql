@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from .dataloaders import DataLoader
 
 
-class PortalContext(HttpRequest):
+class Context(HttpRequest):
     _cached_user: Optional[User]
     decoded_auth_token: Optional[Dict[str, Any]]
     allow_replica: bool = True

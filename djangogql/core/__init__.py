@@ -1,10 +1,10 @@
 import graphene
 
 from . import fields  # noqa
-from .context import PortalContext
+from .context import Context
 
-__all__ = ["PortalContext"]
+__all__ = ["Context"]
 
 
 class ResolveInfo(graphene.ResolveInfo):
-    context: PortalContext
+    context: Context

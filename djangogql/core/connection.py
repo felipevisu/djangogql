@@ -337,7 +337,7 @@ def create_connection_slice(
 
 
 def _validate_slice_args(
-    info: ResolveInfo,
+    info: "ResolveInfo",
     args: dict,
     max_limit: Optional[int] = None,
 ):
