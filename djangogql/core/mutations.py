@@ -2,18 +2,25 @@ from itertools import chain
 from typing import Iterable, Union
 
 import graphene
-from django.core.exceptions import (NON_FIELD_ERRORS, ImproperlyConfigured,
-                                    ValidationError)
+from django.core.exceptions import (
+    NON_FIELD_ERRORS,
+    ImproperlyConfigured,
+    ValidationError,
+)
 from django.db.models.fields.files import FileField
 from graphene import ObjectType
 from graphene.types.mutation import MutationOptions
 from graphql import GraphQLError
 
 from ..exceptions import PermissionDenied
-from ..utils import get_nodes, resolve_global_ids_to_primary_keys
+from ..utils import (
+    from_global_id_or_error,
+    get_error_code_from_error,
+    get_nodes,
+    resolve_global_ids_to_primary_keys,
+    snake_to_camel_case,
+)
 from .types import Error
-from .utils import (from_global_id_or_error, get_error_code_from_error,
-                    snake_to_camel_case)
 
 
 def get_model_name(model):

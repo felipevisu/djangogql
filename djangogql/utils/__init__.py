@@ -1,5 +1,7 @@
+import binascii
 import logging
 import traceback
+from enum import Enum
 from typing import Any, Dict, Union
 from uuid import UUID
 
@@ -7,11 +9,11 @@ import graphene
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from graphql.error import GraphQLError
+from graphene import ObjectType
+from graphql import GraphQLError
 from graphql.error import format_error as format_graphql_error
 from jwt import InvalidTokenError
 
-from ..core.utils import from_global_id_or_error
 from ..exceptions import PermissionDenied, ReadOnlyException
 
 ERROR_COULD_NO_RESOLVE_GLOBAL_ID = (
@@ -32,6 +34,30 @@ ALLOWED_ERRORS = [
     ReadOnlyException,
     ValidationError,
 ]
+
+
+def from_global_id_or_error(
+    id: str, only_type: Union[ObjectType, str, None] = None, field: str = "id"
+):
+    try:
+        _type, _id = graphene.Node.from_global_id(id)
+    except (binascii.Error, UnicodeDecodeError, ValueError):
+        raise GraphQLError(f"Couldn't resolve id: {id}.")
+
+    if only_type and str(_type) != str(only_type):
+        raise GraphQLError(f"Must receive a {only_type} id.")
+    return _type, _id
+
+
+def from_global_id_or_none(
+    global_id,
+    only_type: Union[graphene.ObjectType, str, None] = None,
+    raise_error: bool = False,
+):
+    if not global_id:
+        return None
+
+    return from_global_id_or_error(global_id, only_type, raise_error)[1]
 
 
 def resolve_global_ids_to_primary_keys(
@@ -183,3 +209,51 @@ def format_error(error, handled_exceptions):
                 lines.extend(line.rstrip().splitlines())
         result["extensions"]["exception"]["stacktrace"] = lines
     return result
+
+
+def snake_to_camel_case(name):
+    if isinstance(name, str):
+        split_name = name.split("_")
+        return split_name[0] + "".join(map(str.capitalize, split_name[1:]))
+    return name
+
+
+DJANGO_VALIDATORS_ERROR_CODES = [
+    "invalid",
+    "invalid_extension",
+    "limit_value",
+    "max_decimal_places",
+    "max_digits",
+    "max_length",
+    "max_value",
+    "max_whole_digits",
+    "min_length",
+    "min_value",
+    "null_characters_not_allowed",
+]
+
+DJANGO_FORM_FIELDS_ERROR_CODES = [
+    "contradiction",
+    "empty",
+    "incomplete",
+    "invalid_choice",
+    "invalid_date",
+    "invalid_image",
+    "invalid_list",
+    "invalid_time",
+    "missing",
+    "overflow",
+]
+
+
+def get_error_code_from_error(error) -> str:
+    code = error.code
+    if code in ["required", "blank", "null"]:
+        return "required"
+    if code in ["unique", "unique_for_date"]:
+        return "unique"
+    if code in DJANGO_VALIDATORS_ERROR_CODES or code in DJANGO_FORM_FIELDS_ERROR_CODES:
+        return "invalid"
+    if isinstance(code, Enum):
+        code = code.value
+    return code
