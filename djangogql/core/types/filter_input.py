@@ -9,7 +9,7 @@ from graphene.types.utils import yank_fields_from_attrs
 
 from ..filters import GlobalIDFilter, GlobalIDMultipleChoiceFilter
 from .common import NonNullList
-from .converter import convert_form_field
+from .filter_converter import convert_form_field
 
 GLOBAL_ID_FILTERS = {
     models.AutoField: {"filter_class": GlobalIDFilter},
