@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="python-djangogql",
-    version="1.2.0",
+    version="1.3.0",
     description="A Django app to build graphql APIs",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -32,11 +32,11 @@ setup(
         "Django >= 3.2",
         "django-filter >= 23.2",
         "graphene >= 2.1.9, < 3",
-        "graphene-django >= 2.16.0, < 3",
         "graphql-core >= 2.3.2, < 3",
         "graphql-relay >= 2.0.1, < 3",
         "promise >= 2.3",
         "PyJWT >= 2.7.0",
+        "text-unidecode >= 1.3",
     ],
     extras_require={"dev": ["twine >= 4.0.2"]},
     include_package_data=True,
