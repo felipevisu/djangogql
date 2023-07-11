@@ -1,5 +1,11 @@
+import graphene
 from django.db.models import Model, Q
 from graphene.types.objecttype import ObjectType, ObjectTypeOptions
+from graphene.types.utils import yank_fields_from_attrs
+from graphene_django.registry import get_global_registry
+from graphene_django.types import construct_fields
+
+ALL_FIELDS = "__all__"
 
 
 class ModelObjectOptions(ObjectTypeOptions):
@@ -13,6 +19,9 @@ class ModelObjectType(ObjectType):
         interfaces=(),
         possible_types=(),
         default_resolver=None,
+        fields=None,
+        exclude=None,
+        convert_choices_to_enum=True,
         _meta=None,
         **options,
     ):
@@ -32,6 +41,16 @@ class ModelObjectType(ObjectType):
                 )
 
             _meta.model = options.pop("model")
+
+        registry = get_global_registry()
+        model = _meta.model
+
+        django_fields = yank_fields_from_attrs(
+            construct_fields(model, registry, fields, exclude, convert_choices_to_enum),
+            _as=graphene.Field,
+        )
+
+        _meta.fields = django_fields
 
         super(ModelObjectType, cls).__init_subclass_with_meta__(
             interfaces=interfaces,
@@ -53,4 +72,5 @@ class ModelObjectType(ObjectType):
 
     @classmethod
     def get_model(cls):
+        return cls._meta.model
         return cls._meta.model
