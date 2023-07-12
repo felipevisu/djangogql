@@ -78,36 +78,6 @@ class FilterInputObjectType(InputObjectType):
         return args
 
 
-class ChannelFilterInputObjectType(FilterInputObjectType):
-    channel = Argument(String)
-
-    class Meta:
-        abstract = True
-
-
 class StringFilterInput(graphene.InputObjectType):
     eq = graphene.String(required=False)
     one_of = NonNullList(graphene.String, required=False)
-
-
-class WhereInputObjectType(FilterInputObjectType):
-    class Meta:
-        abstract = True
-
-    @classmethod
-    def __init_subclass_with_meta__(cls, _meta=None, **options):
-        super().__init_subclass_with_meta__(_meta=_meta, **options)
-        cls._meta.fields.update(
-            {
-                "AND": graphene.Field(
-                    NonNullList(
-                        cls,
-                    )
-                ),
-                "OR": graphene.Field(
-                    NonNullList(
-                        cls,
-                    )
-                ),
-            }
-        )

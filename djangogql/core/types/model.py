@@ -117,4 +117,3 @@ class ModelObjectType(ObjectType):
     @classmethod
     def get_model(cls):
         return cls._meta.model
-        return cls._meta.model

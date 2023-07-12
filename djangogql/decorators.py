@@ -4,8 +4,7 @@ from typing import Iterable
 from graphene import ResolveInfo
 
 from .exceptions import PermissionDenied
-from .permissions import (BasePermissionEnum,
-                          one_of_permissions_or_auth_filter_required)
+from .permissions import BasePermissionEnum, one_of_permissions_or_auth_filter_required
 
 
 def context(f):

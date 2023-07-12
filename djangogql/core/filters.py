@@ -1,11 +1,8 @@
 import django_filters
-import graphene
 from django.core.exceptions import ValidationError
 from django.forms import CharField, Field, MultipleChoiceField
 from django_filters import Filter, MultipleChoiceFilter
 from graphql_relay import from_global_id
-
-from ..utils.filters import filter_range_field
 
 
 def search_filter(queryset, name, value):
@@ -59,41 +56,6 @@ class ObjectTypeFilter(django_filters.Filter):
     def __init__(self, input_class, *args, **kwargs):
         self.input_class = input_class
         super().__init__(*args, **kwargs)
-
-
-def filter_created_at(qs, _, value):
-    return filter_range_field(qs, "created_at", value)
-
-
-def filter_updated_at(qs, _, value):
-    return filter_range_field(qs, "updated_at", value)
-
-
-def filter_status(qs, _, value):
-    if not value:
-        return qs
-    return qs.filter(status=value)
-
-
-def filter_metadata(qs, _, value):
-    for metadata_item in value:
-        if metadata_item.value:
-            qs = qs.filter(metadata__contains={metadata_item.key: metadata_item.value})
-        else:
-            qs = qs.filter(metadata__has_key=metadata_item.key)
-    return qs
-
-
-class MetadataFilter(graphene.InputObjectType):
-    key = graphene.String(required=True, description="Key of a metadata item.")
-    value = graphene.String(required=False, description="Value of a metadata item.")
-
-
-class MetadataFilterBase(django_filters.FilterSet):
-    metadata = ListObjectTypeFilter(input_class=MetadataFilter, method=filter_metadata)
-
-    class Meta:
-        abstract = True
 
 
 class GlobalIDFormField(Field):

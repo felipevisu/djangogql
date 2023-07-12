@@ -51,25 +51,3 @@ class DateTimeRangeInput(graphene.InputObjectType):
 class IntRangeInput(graphene.InputObjectType):
     gte = graphene.Int(description="Value greater than or equal to.", required=False)
     lte = graphene.Int(description="Value less than or equal to.", required=False)
-
-
-class EntryError(Error):
-    code = graphene.String(description="The error code.")
-    attributes = NonNullList(
-        graphene.ID,
-        description="List of attributes IDs which causes the error.",
-        required=False,
-    )
-    values = NonNullList(
-        graphene.ID,
-        description="List of attribute values IDs which causes the error.",
-        required=False,
-    )
-
-
-class EntryChannelListingError(EntryError):
-    channels = NonNullList(
-        graphene.ID,
-        description="List of channels IDs which causes the error.",
-        required=False,
-    )

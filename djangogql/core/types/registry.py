@@ -12,9 +12,6 @@ class Registry:
             cls.__name__
         )
         assert cls._meta.registry == self, "Registry for a Model have to match."
-        # assert self.get_type_for_model(cls._meta.model) == cls, (
-        #     'Multiple ModelObjectTypes registered for "{}"'.format(cls._meta.model)
-        # )
         if not getattr(cls._meta, "skip_registry", False):
             self._registry[cls._meta.model] = cls
 
