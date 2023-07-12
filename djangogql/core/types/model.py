@@ -6,7 +6,7 @@ from graphene.types.objecttype import ObjectType, ObjectTypeOptions
 from graphene.types.utils import yank_fields_from_attrs
 
 from ...utils.fields import get_model_fields
-from .model_converter import convert_django_field_with_choices
+from .converter import convert_field_with_choices
 from .registry import get_global_registry
 
 ALL_FIELDS = "__all__"
@@ -44,7 +44,7 @@ def construct_fields(
             else:
                 _convert_choices_to_enum = False
 
-        converted = convert_django_field_with_choices(
+        converted = convert_field_with_choices(
             field, registry, convert_choices_to_enum=_convert_choices_to_enum
         )
         fields[name] = converted

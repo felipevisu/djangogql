@@ -3,11 +3,22 @@ from collections import OrderedDict
 from functools import singledispatch, wraps
 
 import graphene
+from django import forms
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.utils.encoding import force_str
 from graphene.utils.str_converters import to_camel_case
 from graphql import GraphQLError
 from text_unidecode import unidecode
+
+from ..filters import (
+    EnumFilter,
+    GlobalIDFormField,
+    GlobalIDMultipleChoiceField,
+    ListObjectTypeFilter,
+    ObjectTypeFilter,
+)
+from .common import NonNullList
 
 
 def to_const(string):
@@ -101,9 +112,7 @@ def convert_choice_field_to_enum(field, name=None):
     return convert_choices_to_named_enum_with_descriptions(name, choices)
 
 
-def convert_django_field_with_choices(
-    field, registry=None, convert_choices_to_enum=True
-):
+def convert_field_with_choices(field, registry=None, convert_choices_to_enum=True):
     if registry is not None:
         converted = registry.get_converted_field(field)
         if converted:
@@ -114,121 +123,132 @@ def convert_django_field_with_choices(
         required = not (field.blank or field.null)
 
         converted = EnumCls(
-            description=get_django_field_description(field), required=required
+            description=get_field_description(field), required=required
         ).mount_as(BlankValueField)
     else:
-        converted = convert_django_field(field, registry)
+        converted = convert_field(field, registry)
     if registry is not None:
         registry.register_converted_field(field, converted)
     return converted
 
 
-def get_django_field_description(field):
+def get_field_description(field):
     return str(field.help_text) if field.help_text else None
 
 
+def get_field_required(field):
+    if hasattr(field, "required"):
+        return field.required
+    if hasattr(field, "null"):
+        return not field.null
+    return False
+
+
 @singledispatch
-def convert_django_field(field, registry=None):
-    raise Exception(
-        "Don't know how to convert the Django field {} ({})".format(
-            field, field.__class__
-        )
+def convert_field(field):
+    raise ImproperlyConfigured(
+        "Don't know how to convert the Django form field %s (%s) "
+        "to Graphene type" % (field, field.__class__)
     )
 
 
-@convert_django_field.register(models.CharField)
-@convert_django_field.register(models.TextField)
-@convert_django_field.register(models.EmailField)
-@convert_django_field.register(models.SlugField)
-@convert_django_field.register(models.URLField)
-@convert_django_field.register(models.GenericIPAddressField)
-@convert_django_field.register(models.FileField)
-@convert_django_field.register(models.FilePathField)
+@convert_field.register(models.CharField)
+@convert_field.register(models.TextField)
+@convert_field.register(models.EmailField)
+@convert_field.register(models.SlugField)
+@convert_field.register(models.URLField)
+@convert_field.register(models.GenericIPAddressField)
+@convert_field.register(models.FileField)
+@convert_field.register(models.FilePathField)
+@convert_field.register(forms.CharField)
 def convert_field_to_string(field, registry=None):
     return graphene.String(
-        description=get_django_field_description(field), required=not field.null
+        description=get_field_description(field), required=get_field_required(field)
     )
 
 
-@convert_django_field.register(models.BigAutoField)
-@convert_django_field.register(models.AutoField)
-def convert_field_to_id(field, registry=None):
-    return graphene.ID(
-        description=get_django_field_description(field), required=not field.null
-    )
+@convert_field.register(models.BooleanField)
+@convert_field.register(forms.BooleanField)
+@convert_field.register(forms.NullBooleanField)
+def convert_field_to_nullboolean(field, registry=None):
+    return graphene.Boolean(description=get_field_description(field))
 
 
-if hasattr(models, "SmallAutoField"):
-
-    @convert_django_field.register(models.SmallAutoField)
-    def convert_field_small_to_id(field, registry=None):
-        return convert_field_to_id(field, registry)
-
-
-@convert_django_field.register(models.UUIDField)
-def convert_field_to_uuid(field, registry=None):
-    return graphene.UUID(
-        description=get_django_field_description(field), required=not field.null
-    )
-
-
-@convert_django_field.register(models.PositiveIntegerField)
-@convert_django_field.register(models.PositiveSmallIntegerField)
-@convert_django_field.register(models.SmallIntegerField)
-@convert_django_field.register(models.IntegerField)
-def convert_field_to_int(field, registry=None):
-    return graphene.Int(
-        description=get_django_field_description(field), required=not field.null
-    )
-
-
-@convert_django_field.register(models.BooleanField)
-def convert_field_to_boolean(field, registry=None):
-    return graphene.Boolean(
-        description=get_django_field_description(field), required=not field.null
-    )
-
-
-@convert_django_field.register(models.DecimalField)
-def convert_field_to_decimal(field, registry=None):
-    return graphene.Decimal(
-        description=get_django_field_description(field), required=not field.null
-    )
-
-
-@convert_django_field.register(models.FloatField)
-@convert_django_field.register(models.DurationField)
+@convert_field.register(models.FloatField)
+@convert_field.register(models.DurationField)
+@convert_field.register(forms.DecimalField)
+@convert_field.register(forms.FloatField)
 def convert_field_to_float(field, registry=None):
     return graphene.Float(
-        description=get_django_field_description(field), required=not field.null
+        description=field.help_text, required=get_field_required(field)
     )
 
 
-@convert_django_field.register(models.DateTimeField)
+@convert_field.register(ObjectTypeFilter)
+@convert_field.register(EnumFilter)
+def convert_convert_enum(field, registry=None):
+    return field.input_class()
+
+
+@convert_field.register(models.BigAutoField)
+@convert_field.register(models.AutoField)
+@convert_field.register(GlobalIDFormField)
+def convert_field_to_id(field, registry=None):
+    return graphene.ID(required=get_field_required(field))
+
+
+@convert_field.register(ListObjectTypeFilter)
+def convert_list_object_type(field, registry=None):
+    return NonNullList(field.input_class)
+
+
+@convert_field.register(GlobalIDMultipleChoiceField)
+def convert_field_to_list(field):
+    return NonNullList(graphene.ID, required=get_field_required(field))
+
+
+@convert_field.register(models.PositiveIntegerField)
+@convert_field.register(models.PositiveSmallIntegerField)
+@convert_field.register(models.SmallIntegerField)
+@convert_field.register(models.IntegerField)
+def convert_field_to_int(field, registry=None):
+    return graphene.Int(
+        description=get_field_description(field), required=not field.null
+    )
+
+
+@convert_field.register(models.DecimalField)
+def convert_field_to_decimal(field, registry=None):
+    return graphene.Decimal(
+        description=get_field_description(field), required=not field.null
+    )
+
+
+@convert_field.register(models.DateTimeField)
 def convert_datetime_to_string(field, registry=None):
     return graphene.DateTime(
-        description=get_django_field_description(field), required=not field.null
+        description=get_field_description(field), required=not field.null
     )
 
 
-@convert_django_field.register(models.DateField)
+@convert_field.register(models.DateField)
 def convert_date_to_string(field, registry=None):
     return graphene.Date(
-        description=get_django_field_description(field), required=not field.null
+        description=get_field_description(field), required=not field.null
     )
 
 
-@convert_django_field.register(models.TimeField)
+@convert_field.register(models.TimeField)
 def convert_time_to_string(field, registry=None):
     return graphene.Time(
-        description=get_django_field_description(field), required=not field.null
+        description=get_field_description(field), required=not field.null
     )
 
 
-@convert_django_field.register(models.ManyToManyField)
-@convert_django_field.register(models.ManyToManyRel)
-@convert_django_field.register(models.ManyToOneRel)
-@convert_django_field.register(models.ForeignKey)
-@convert_django_field.register(models.JSONField)
+@convert_field.register(models.ManyToManyField)
+@convert_field.register(models.ManyToManyRel)
+@convert_field.register(models.ManyToOneRel)
+@convert_field.register(models.ForeignKey)
+@convert_field.register(models.JSONField)
 def convert_field_to_list_or_connection(field, registry=None):
     return None

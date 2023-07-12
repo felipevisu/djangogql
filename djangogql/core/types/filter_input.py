@@ -9,7 +9,7 @@ from graphene.types.utils import yank_fields_from_attrs
 
 from ..filters import GlobalIDFilter, GlobalIDMultipleChoiceFilter
 from .common import NonNullList
-from .filter_converter import convert_form_field
+from .converter import convert_field
 
 GLOBAL_ID_FILTERS = {
     models.AutoField: {"filter_class": GlobalIDFilter},
@@ -68,9 +68,9 @@ class FilterInputObjectType(InputObjectType):
         for name, filter_field in cls.filterset_class.base_filters.items():
             input_class = getattr(filter_field, "input_class", None)
             if input_class:
-                field_type = convert_form_field(filter_field)
+                field_type = convert_field(filter_field)
             else:
-                field_type = convert_form_field(filter_field.field)
+                field_type = convert_field(filter_field.field)
                 field_type.description = getattr(filter_field, "help_text", "")
             kwargs = getattr(field_type, "kwargs", {})
             field_type.kwargs = kwargs
