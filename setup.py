@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="python-djangogql",
-    version="1.3.1",
+    version="1.4.0",
     description="A Django app to build graphql APIs",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
